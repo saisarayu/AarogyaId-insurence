@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: insurance-ai-backend
+    runtime: python3
+    pythonVersion: 3.11
+    buildContext: ./backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: insurance_db
+      - key: MONGO_COLLECTION_NAME
+        value: policies
+      - key: CHROMA_PERSIST_DIR
+        value: ./chromadb
+      - key: CHROMA_COLLECTION_NAME
+        value: insurance_policies
+      - key: MAX_CHUNK_SIZE
+        value: 500
+      - key: MIN_CHUNK_SIZE
+        value: 400
