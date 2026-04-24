@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { recommend, chat } from '../services/api';
 
 const Dashboard = ({ profile, onResetProfile }) => {
   const [recommendation, setRecommendation] = useState(null);
@@ -11,11 +11,11 @@ const Dashboard = ({ profile, onResetProfile }) => {
   useEffect(() => {
     const fetchRecommendation = async () => {
       try {
-        const response = await axios.post('http://localhost:8000/recommend', profile);
-        setRecommendation(response.data);
+        const data = await recommend(profile);
+        setRecommendation(data);
       } catch (error) {
         console.error('Error fetching recommendation:', error);
-        setRecommendation({ recommendation: 'Unable to fetch recommendation. Please try again.' });
+        setRecommendation({ why_this_policy: 'Unable to fetch recommendation. Please try again.' });
       } finally {
         setLoading(false);
       }
@@ -29,11 +29,11 @@ const Dashboard = ({ profile, onResetProfile }) => {
 
     setChatLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/chat', {
+      const response = await chat({
         question: chatQuestion,
         user_profile: profile,
       });
-      setChatHistory([...chatHistory, { question: chatQuestion, answer: response.data.answer }]);
+      setChatHistory([...chatHistory, { question: chatQuestion, answer: response.answer }]);
       setChatQuestion('');
     } catch (error) {
       console.error('Error chatting:', error);
