@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ChatBox = ({ profile, conversation, onSend, loading, error }) => {
+const ChatBox = ({ profile, conversation, onSend, loading }) => {
   const [question, setQuestion] = useState('');
   const bottomRef = useRef(null);
 
-  // Auto-scroll to latest message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation]);
@@ -16,118 +15,84 @@ const ChatBox = ({ profile, conversation, onSend, loading, error }) => {
     setQuestion('');
   };
 
-  const handleKeyDown = (ev) => {
-    if (ev.key === 'Enter' && !ev.shiftKey) {
-      ev.preventDefault();
-      handleSubmit(ev);
-    }
-  };
-
   return (
-    <div className="fade-up rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <div
-          className="flex h-7 w-7 items-center justify-center rounded-full text-white text-xs font-bold flex-shrink-0"
-          style={{ background: 'var(--navy)' }}
-        >
-          AI
-        </div>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Policy Assistant</p>
-          <p className="text-xs" style={{ color: 'var(--ink-muted)' }}>
-            Ask anything about your recommendation · uses {profile?.name}'s profile context
-          </p>
-        </div>
+    <div className="bg-white rounded-xl border border-slate-200 card-shadow overflow-hidden flex flex-col mt-6 h-[500px]">
+      
+      <div className="p-5 border-b border-slate-100 bg-white z-10 shadow-sm flex items-center justify-between">
+         <div>
+            <h2 className="font-semibold text-slate-800 text-lg">AI Insurance Assistant</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Ask me anything about your insurance policy</p>
+         </div>
       </div>
 
-      {/* Messages */}
-      <div
-        className="px-5 py-4 space-y-3 overflow-y-auto"
-        style={{ minHeight: '180px', maxHeight: '380px', background: '#faf9f7' }}
-      >
-        {conversation.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-center">
-            <p className="text-sm mb-1" style={{ color: 'var(--ink-muted)' }}>
-              No messages yet.
-            </p>
-            <p className="text-xs" style={{ color: 'var(--ink-muted)' }}>
-              Try asking: "What does this policy cover for diabetics?" or "Explain co-pay."
-            </p>
+      <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-6">
+        
+        {conversation.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-white rounded-2xl border border-dashed border-slate-200">
+            <span className="text-4xl mb-3">💬</span>
+            <p className="font-medium text-slate-600">I'm ready to answer any questions.</p>
+            <p className="text-sm text-slate-500 mt-1 max-w-sm">Ask about what is covered in your city, or specific details for {profile?.conditions?.join(', ') || 'your conditions'}.</p>
           </div>
-        ) : (
-          conversation.map((msg, i) => {
-            const isUser = msg.role === 'user';
-            return (
-              <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-6 ${
-                    isUser ? 'rounded-br-sm' : 'rounded-bl-sm'
-                  }`}
-                  style={
-                    isUser
-                      ? { background: 'var(--navy)', color: '#fff' }
-                      : { background: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--border)' }
-                  }
-                >
-                  {!isUser && (
-                    <p className="text-xs font-medium mb-1 opacity-50">Assistant</p>
-                  )}
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
-                </div>
-              </div>
-            );
-          })
         )}
 
-        {/* Loading indicator */}
-        {loading && (
-          <div className="flex justify-start">
-            <div
-              className="rounded-2xl rounded-bl-sm px-4 py-3"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
-              <div className="dot-pulse flex gap-1">
-                <span /><span /><span />
+        {conversation.map((msg, i) => {
+          const isUser = msg.role === 'user';
+          return (
+            <div key={i} className={`flex gap-3 w-full ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+              
+              <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs shadow-sm bg-white border border-slate-200 ${isUser ? 'hidden' : 'block'}`}>
+                 🤖
+              </div>
+
+              <div className={`max-w-[75%] px-5 py-3.5 shadow-sm text-sm leading-relaxed
+                ${isUser 
+                  ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-sm' 
+                  : 'bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-tl-sm'
+                }`}
+              >
+                <div className="whitespace-pre-wrap">{msg.text}</div>
               </div>
             </div>
-          </div>
+          );
+        })}
+
+        {loading && (
+           <div className="flex gap-3 w-full flex-row">
+              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex-shrink-0 flex items-center justify-center shadow-sm">
+                 🤖
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-3.5 shadow-sm">
+                 <div className="flex gap-1.5 items-center justify-center h-5">
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                 </div>
+              </div>
+           </div>
         )}
-        <div ref={bottomRef} />
+
+        <div ref={bottomRef} className="h-4" />
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="px-5 py-2 text-xs" style={{ color: 'var(--accent)', background: '#fff7ed', borderTop: '1px solid #fed7aa' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="border-t px-4 py-3" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-        <form onSubmit={handleSubmit} className="flex gap-2.5">
-          <textarea
-            rows={1}
+      <div className="p-4 border-t border-slate-200 bg-white">
+        <form onSubmit={handleSubmit} className="relative">
+          <input
+            type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about coverage, premiums, exclusions…"
-            className="field-input flex-1 resize-none leading-6"
-            style={{ paddingTop: '0.55rem', paddingBottom: '0.55rem' }}
+            placeholder="Ask me anything about insurance..."
+            className="w-full border border-slate-200 bg-slate-50 rounded-full pl-5 pr-12 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors"
           />
           <button
             type="submit"
             disabled={loading || !question.trim()}
-            className="btn-primary flex-shrink-0 px-4"
+            className="absolute right-2 top-2 bottom-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full w-9 flex items-center justify-center transition-colors"
           >
-            {loading ? '…' : '↑'}
+            {'>'}
           </button>
         </form>
-        <p className="mt-1.5 text-xs" style={{ color: 'var(--ink-muted)' }}>
-          Enter to send · Shift+Enter for new line
-        </p>
       </div>
+
     </div>
   );
 };

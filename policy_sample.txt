@@ -1,0 +1,52 @@
+POLICY NAME: Aarogya Health Guard
+INSURER: HealthCare Shield Ltd.
+
+POLICY TYPE: Individual Health Insurance
+
+SUMMARY:
+Aarogya Health Guard provides wide-ranging coverage for hospitalization, day care procedures, diagnostic services, and post-hospitalization care. This policy is designed for individuals and families who want a balanced plan with strong outpatient support and cashless claim options.
+
+SUM INSURED:
+- ₹5,00,000 per year
+
+PREMIUM:
+- Annual premium: ₹10,800
+- No claim bonus: 10% discount after each claim-free year (max 50%)
+
+COVERAGE DETAILS:
+- Room rent up to ₹5,000 per day
+- Surgeon's fees, anesthesia, and consultation charges
+- Nursing expenses and ICU charges
+- Medicines, implants, and consumables
+- Diagnostic tests while hospitalized
+- Ambulance charges up to ₹2,000 per event
+- Post-hospitalization treatment for 90 days
+
+WAITING PERIOD:
+- Pre-existing conditions: 24 months
+- Specific illness: 12 months
+- Maternity benefits: 24 months
+
+INCLUSIONS:
+- Hospitalization due to illness or accident
+- Day care surgeries
+- Organ donor expenses
+- Emergency ambulance services
+- Preventive health check-up every 2 years
+
+EXCLUSIONS:
+- Cosmetic and plastic surgery
+- Dental treatment unless due to accident
+- Treatment for substance abuse
+- Experimental therapies and unproven procedures
+- Self-inflicted injuries
+
+CO-PAY:
+- 10% co-pay for claims above ₹1,50,000
+
+CLAIM TYPE:
+- Cashless claims available at network hospitals
+- Reimbursement claims accepted for out-of-network treatment
+
+POLICY CONDITIONS:
+The insured must disclose all pre-existing conditions at application. Renewal is lifelong, subject to terms and premium review. Misrepresentation of information may lead to claim rejection or policy cancellation.

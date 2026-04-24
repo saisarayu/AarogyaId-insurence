@@ -3,30 +3,15 @@ import { useState } from 'react';
 const lifestyles    = ['Sedentary', 'Moderate', 'Active', 'Athlete'];
 const incomes       = ['under 3L', '3-8L', '8-15L', '15L+'];
 const cities        = ['Metro', 'Tier-2', 'Tier-3'];
-const conditionOpts = ['Diabetes', 'Hypertension', 'Asthma', 'Heart disease', 'None'];
+const conditionOpts = ['Diabetes', 'Hypertension', 'Asthma', 'Heart disease'];
 
 const UserForm = ({ onSubmit, loading }) => {
   const [values, setValues] = useState({
-    name: '', age: '', lifestyle: '', conditions: [], income: '', city: '',
+    name: 'Ravi Kumar', age: '45', lifestyle: 'Sedentary', conditions: ['Diabetes', 'Hypertension'], income: '3 - 8 LPA', city: 'Tier-2 City',
   });
-  const [errors, setErrors] = useState({});
-
-  const validate = () => {
-    const e = {};
-    if (!values.name.trim())                                             e.name       = 'Name is required.';
-    if (!values.age)                                                     e.age        = 'Age is required.';
-    else if (Number(values.age) < 1 || Number(values.age) > 99)         e.age        = 'Age must be between 1 and 99.';
-    if (!values.lifestyle)                                               e.lifestyle  = 'Select a lifestyle.';
-    if (!values.conditions.length)                                       e.conditions = 'Select at least one condition.';
-    if (!values.income)                                                  e.income     = 'Select an income range.';
-    if (!values.city)                                                    e.city       = 'Select a city tier.';
-    setErrors(e);
-    return !Object.keys(e).length;
-  };
 
   const handleSubmit = (ev) => {
     ev.preventDefault();
-    if (!validate()) return;
     onSubmit({ ...values, age: Number(values.age) });
   };
 
@@ -41,125 +26,79 @@ const UserForm = ({ onSubmit, loading }) => {
         : [...v.conditions, cond],
     }));
 
-  const err = (field) =>
-    errors[field] ? (
-      <p className="mt-1 text-xs" style={{ color: 'var(--accent)' }}>{errors[field]}</p>
-    ) : null;
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-7">
-
-      {/* Row 1 — Name + Age */}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label className="field-label">Full name</label>
-          <input
-            className="field-input"
-            type="text"
-            placeholder="e.g. Priya Sharma"
-            value={values.name}
-            onChange={set('name')}
-          />
-          {err('name')}
-        </div>
-        <div>
-          <label className="field-label">Age</label>
-          <input
-            className="field-input"
-            type="number"
-            placeholder="1 – 99"
-            min="1" max="99"
-            value={values.age}
-            onChange={set('age')}
-          />
-          {err('age')}
-        </div>
+    <div className="bg-white rounded-xl border border-slate-200 card-shadow overflow-hidden">
+      <div className="p-5 border-b border-slate-100">
+        <h2 className="font-semibold text-slate-800 text-lg">Your Profile</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Tell us about yourself</p>
       </div>
 
-      {/* Row 2 — Lifestyle */}
-      <div>
-        <label className="field-label">Lifestyle</label>
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          {lifestyles.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => setValues((v) => ({ ...v, lifestyle: opt }))}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                values.lifestyle === opt
-                  ? 'text-white border-transparent'
-                  : 'border-stone-300 text-stone-600 hover:border-stone-400'
-              }`}
-              style={values.lifestyle === opt ? { background: 'var(--accent)', borderColor: 'var(--accent)' } : {}}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-        {err('lifestyle')}
-      </div>
-
-      {/* Row 3 — Conditions (checkbox style) */}
-      <div>
-        <label className="field-label">Health conditions <span className="normal-case font-normal text-stone-400">(select all that apply)</span></label>
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          {conditionOpts.map((cond) => {
-            const active = values.conditions.includes(cond);
-            return (
-              <button
-                key={cond}
-                type="button"
-                onClick={() => toggleCondition(cond)}
-                className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'text-white border-transparent'
-                    : 'border-stone-300 text-stone-600 hover:border-stone-400'
-                }`}
-                style={active ? { background: 'var(--navy)', borderColor: 'var(--navy)' } : {}}
-              >
-                {active && <span>✓</span>}
-                {cond}
-              </button>
-            );
-          })}
-        </div>
-        {err('conditions')}
-      </div>
-
-      {/* Row 4 — Income + City */}
-      <div className="grid gap-5 sm:grid-cols-2">
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        {/* Name */}
         <div>
-          <label className="field-label">Annual income</label>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">👤</span> Name</label>
+          <input className="field-input" type="text" value={values.name} onChange={set('name')} />
+        </div>
+
+        {/* Age */}
+        <div>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">🎂</span> Age</label>
+          <input className="field-input" type="number" value={values.age} onChange={set('age')} />
+        </div>
+
+        {/* Lifestyle */}
+        <div>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">🏃</span> Lifestyle</label>
+          <select className="field-input" value={values.lifestyle} onChange={set('lifestyle')}>
+            <option value="">Select lifestyle</option>
+            {lifestyles.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+
+        {/* Medical Conditions */}
+        <div>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">🫀</span> Medical Conditions</label>
+          <div className="border border-slate-200 rounded-lg p-2 flex flex-wrap gap-1.5 min-h-[42px] bg-white">
+            {values.conditions.map(c => (
+              <span key={c} className="bg-indigo-50 text-indigo-600 text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1">
+                {c}
+                <button type="button" onClick={() => toggleCondition(c)} className="hover:text-indigo-800 ml-1">×</button>
+              </span>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-1 flex-wrap">
+             {conditionOpts.map(c => !values.conditions.includes(c) && (
+                 <button type="button" key={c} onClick={() => toggleCondition(c)} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded hover:bg-slate-200">+{c}</button>
+             ))}
+          </div>
+        </div>
+
+        {/* Income Range */}
+        <div>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">💰</span> Income Range</label>
           <select className="field-input" value={values.income} onChange={set('income')}>
-            <option value="">Select range</option>
-            {incomes.map((o) => <option key={o} value={o}>{o}</option>)}
+            <option value="">Select income</option>
+            {incomes.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
-          {err('income')}
         </div>
-        <div>
-          <label className="field-label">City tier</label>
-          <select className="field-input" value={values.city} onChange={set('city')}>
-            <option value="">Select tier</option>
-            {cities.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-          {err('city')}
-        </div>
-      </div>
 
-      {/* Submit */}
-      <div className="pt-1">
-        <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-[15px]">
-          {loading ? (
-            <span className="dot-pulse flex items-center gap-1">
-              <span /><span /><span />
-              <span className="ml-2 font-normal text-orange-100">Finding best policies…</span>
-            </span>
-          ) : (
-            'Get My Recommendation →'
-          )}
-        </button>
-      </div>
-    </form>
+        {/* City */}
+        <div>
+          <label className="field-label flex items-center gap-2"><span className="text-slate-400">🏙</span> City</label>
+          <select className="field-input" value={values.city} onChange={set('city')}>
+            <option value="">Select city</option>
+            {cities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        {/* Submit */}
+        <div className="pt-2">
+          <button type="submit" disabled={loading} className="btn-primary">
+            {loading ? 'Analyzing...' : '✨ Get Recommendations'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 

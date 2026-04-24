@@ -21,7 +21,6 @@ const Home = () => {
   const [error, setError]                 = useState('');
   const [conversation, setConversation]   = useState([]);
   const [chatLoading, setChatLoading]     = useState(false);
-  const [chatError, setChatError]         = useState('');
 
   const handleFormSubmit = async (userProfile) => {
     setError('');
@@ -34,7 +33,7 @@ const Home = () => {
       setRecommendation(parseRecommendation(data));
     } catch (err) {
       const detail = err?.response?.data?.detail;
-      setError(detail ?? 'Unable to fetch recommendation. Check the backend is running and try again.');
+      setError(detail ?? 'Unable to fetch recommendation.');
     } finally {
       setLoading(false);
     }
@@ -42,7 +41,6 @@ const Home = () => {
 
   const handleChatSend = async (question) => {
     if (!question.trim()) return;
-    setChatError('');
     setChatLoading(true);
     try {
       const response = await chat({ question, user_profile: profile });
@@ -52,57 +50,67 @@ const Home = () => {
         { role: 'assistant', text: response.answer ?? 'No answer returned.' },
       ]);
     } catch {
-      setChatError('Unable to send message. Please try again.');
+      // ignore
     } finally {
       setChatLoading(false);
     }
   };
 
   return (
-    <div className="space-y-10">
-
-      {/* ── Hero intro ── */}
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-widest font-medium" style={{ color: 'var(--accent)' }}>
-          AI-powered · Grounded in policy documents
-        </p>
-        <h1 className="font-display text-3xl sm:text-4xl" style={{ color: 'var(--ink)' }}>
-          Find the right health insurance for you.
-        </h1>
-        <p className="text-base max-w-xl" style={{ color: 'var(--ink-muted)' }}>
-          Answer six questions and our AI will compare uploaded policies against your profile
-          — no hallucinated data, no upselling.
-        </p>
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            Welcome back, User! 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Get the best health insurance recommendations tailored for you.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
+            U
+          </div>
+        </div>
       </div>
 
-      {/* ── Form card ── */}
-      <div className="rounded-xl border bg-white px-6 py-7 sm:px-8" style={{ borderColor: 'var(--border)' }}>
-        <p className="text-xs uppercase tracking-widest font-medium mb-5" style={{ color: 'var(--ink-muted)' }}>
-          Your profile
-        </p>
-        <UserForm onSubmit={handleFormSubmit} loading={loading} />
-      </div>
-
-      {/* ── Error ── */}
       {error && (
-        <div className="fade-up rounded-lg px-4 py-3 text-sm" style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca' }}>
+        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg border border-red-100 text-sm">
           {error}
         </div>
       )}
 
-      {/* ── Results ── */}
-      <Recommendation data={recommendation} loading={loading} />
+      {/* Main Grid: Left Column (Form) / Right Column (Results) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Column: Form */}
+        <div className="w-full lg:w-[320px] flex-shrink-0">
+          <UserForm onSubmit={handleFormSubmit} loading={loading} />
+        </div>
 
-      {/* ── Chat — only after results load ── */}
-      {profile && recommendation && !loading && (
-        <ChatBox
-          profile={profile}
-          conversation={conversation}
-          onSend={handleChatSend}
-          loading={chatLoading}
-          error={chatError}
-        />
-      )}
+        {/* Right Column: Results & Chat */}
+        <div className="flex-1 w-full space-y-6">
+          <Recommendation data={recommendation} loading={loading} />
+
+          {/* Always render this div so we can scroll to it */}
+          <div id="chat-section">
+            {(!profile || !recommendation) ? (
+               <div className="bg-white rounded-xl border border-slate-200 card-shadow overflow-hidden flex flex-col items-center justify-center p-12 text-center h-[300px] mt-6">
+                 <span className="text-4xl mb-3">🔒</span>
+                 <p className="font-semibold text-slate-800">Chat Assistant Locked</p>
+                 <p className="text-sm text-slate-500 mt-1 max-w-sm">Please fill out your profile and click "Get Recommendations" to unlock personalized AI chat support.</p>
+               </div>
+            ) : (
+              <ChatBox
+                profile={profile}
+                conversation={conversation}
+                onSend={handleChatSend}
+                loading={chatLoading}
+              />
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

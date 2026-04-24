@@ -1,0 +1,44 @@
+POLICY NAME: Aarogya Health Secure
+INSURER: HealthyLife Insurance
+
+SUMMARY:
+This policy provides comprehensive health coverage for individuals and families. It covers hospitalization, pre- and post-hospitalization expenses, diagnostics, and wellness benefits.
+
+COVERAGE:
+- Sum insured: ₹5,00,000
+- Hospitalization: up to ₹5,00,000 per year
+- Day care procedures: covered
+- Diagnostic tests: covered up to ₹25,000 per year
+
+PREMIUM:
+- Annual premium: ₹12,500
+- No claim bonus: 10% discount after first claim-free year
+
+WAITING PERIOD:
+- Pre-existing conditions: 24 months
+- Specific diseases: 12 months
+- Maternity benefits: 24 months
+
+INCLUSIONS:
+- Room rent up to ₹5,000 per day
+- Surgeon, anesthetist, and consultant fees
+- Medicines, implants, and consumables
+- Diagnostic procedures during hospitalization
+- Emergency ambulance charges up to ₹2,000 per event
+
+EXCLUSIONS:
+- Cosmetic and plastic surgery
+- Dental treatment unless due to accident
+- Treatment for self-inflicted injuries
+- Treatment for substance abuse
+- Experimental therapies
+
+CO-PAY:
+- 10% co-pay for claims above ₹1,00,000
+
+CLAIM TYPE:
+- Reimbursement and cashless claims available
+- Network hospitals supported nationwide
+
+POLICY TERMS:
+This policy is subject to the terms and conditions of the insurer. The insured must disclose all pre-existing conditions at the time of application. Renewal is available every year with applicable premium adjustments.
