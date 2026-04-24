@@ -7,7 +7,7 @@ const conditionOpts = ['Diabetes', 'Hypertension', 'Asthma', 'Heart disease'];
 
 const UserForm = ({ onSubmit, loading }) => {
   const [values, setValues] = useState({
-    name: 'Ravi Kumar', age: '45', lifestyle: 'Sedentary', conditions: ['Diabetes', 'Hypertension'], income: '3 - 8 LPA', city: 'Tier-2 City',
+    name: 'Ravi Kumar', age: '45', lifestyle: 'Sedentary', conditions: ['Diabetes', 'Hypertension'], income: '3-8L', city: 'Tier-2',
   });
 
   const handleSubmit = (ev) => {
