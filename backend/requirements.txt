@@ -11,3 +11,4 @@ chromadb==1.5.8
 pymongo==4.17.0
 python-dotenv==1.0.0
 openai==1.109.1
+PYTHON_VERSION=3.11.9
