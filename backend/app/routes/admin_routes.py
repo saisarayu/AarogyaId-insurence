@@ -25,56 +25,61 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.post("/upload-policy")
 async def upload_policy(file: UploadFile = File(...)):
-    file_path = UPLOAD_DIR / file.filename
-    content = await file.read()
-    file_path.write_bytes(content)
-
     try:
-        text = extract_text(str(file_path))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        file_path = UPLOAD_DIR / file.filename
+        content = await file.read()
+        file_path.write_bytes(content)
 
-    metadata_available = True
-    try:
-        exists = policy_metadata_exists(file.filename)
-        if exists is True:
-            raise HTTPException(status_code=400, detail=f"Policy '{file.filename}' already exists.")
-        if exists is None:
-            metadata_available = False
-    except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        try:
+            text = extract_text(str(file_path))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
-    chunks = chunk_text(text)
-    if not chunks:
-        raise HTTPException(status_code=400, detail="Uploaded document contained no usable text.")
+        metadata_available = True
+        try:
+            exists = policy_metadata_exists(file.filename)
+            if exists is True:
+                raise HTTPException(status_code=400, detail=f"Policy '{file.filename}' already exists.")
+            if exists is None:
+                metadata_available = False
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
 
-    # Store embeddings/chunks in ChromaDB.
-    store_policy_chunks(
-        policy_name=file.filename,
-        source_file=file.filename,
-        chunks=chunks,
-    )
+        chunks = chunk_text(text)
+        if not chunks:
+            raise HTTPException(status_code=400, detail="Uploaded document contained no usable text.")
 
-    insert_policy_metadata(
-        policy_name=file.filename,
-        file_name=file.filename,
-        insurer=None,
-    )
-
-    response = {
-        "message": "Upload successful and stored in vector DB.",
-        "policy_name": file.filename,
-        "uploaded_at": datetime.utcnow().isoformat() + "Z",
-        "chunk_count": len(chunks),
-    }
-
-    if not metadata_available:
-        response["warning"] = (
-            "Policy metadata store is unavailable. The policy was uploaded to the vector database, "
-            "but metadata information could not be saved."
+        # Store embeddings/chunks in ChromaDB.
+        store_policy_chunks(
+            policy_name=file.filename,
+            source_file=file.filename,
+            chunks=chunks,
         )
 
-    return response
+        insert_policy_metadata(
+            policy_name=file.filename,
+            file_name=file.filename,
+            insurer=None,
+        )
+
+        response = {
+            "message": "Upload successful and stored in vector DB.",
+            "policy_name": file.filename,
+            "uploaded_at": datetime.utcnow().isoformat() + "Z",
+            "chunk_count": len(chunks),
+        }
+
+        if not metadata_available:
+            response["warning"] = (
+                "Policy metadata store is unavailable. The policy was uploaded to the vector database, "
+                "but metadata information could not be saved."
+            )
+
+        return response
+    except Exception as e:
+        import traceback
+        error_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.get("/policies")
