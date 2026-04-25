@@ -12,9 +12,7 @@ export const uploadPolicy = (file) => {
   const formData = new FormData();
   formData.append('file', file);
   return api
-    .post('/upload-policy', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    .post('/upload-policy', formData)
     .then((response) => response.data);
 };
 
