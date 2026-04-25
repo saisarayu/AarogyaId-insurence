@@ -47,7 +47,8 @@ const AdminPanel = () => {
       await uploadPolicy(file);
       refresh();
     } catch (err) {
-      alert(err?.response?.data?.detail ?? 'Upload failed.');
+      const message = err?.response?.data?.detail || err?.message || JSON.stringify(err);
+      alert(message || 'Upload failed.');
     } finally {
       setUploading(false);
     }

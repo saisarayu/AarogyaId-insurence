@@ -34,9 +34,13 @@ async def upload_policy(file: UploadFile = File(...)):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+    metadata_available = True
     try:
-        if policy_metadata_exists(file.filename):
+        exists = policy_metadata_exists(file.filename)
+        if exists is True:
             raise HTTPException(status_code=400, detail=f"Policy '{file.filename}' already exists.")
+        if exists is None:
+            metadata_available = False
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -51,22 +55,26 @@ async def upload_policy(file: UploadFile = File(...)):
         chunks=chunks,
     )
 
-    try:
-        insert_policy_metadata(
-            policy_name=file.filename,
-            file_name=file.filename,
-            insurer=None,
-        )
-    except RuntimeError as exc:
-        delete_policy_chunks(file.filename)
-        raise HTTPException(status_code=500, detail=str(exc))
+    insert_policy_metadata(
+        policy_name=file.filename,
+        file_name=file.filename,
+        insurer=None,
+    )
 
-    return {
-        "message": "Upload successful and stored in vector DB and metadata store.",
+    response = {
+        "message": "Upload successful and stored in vector DB.",
         "policy_name": file.filename,
         "uploaded_at": datetime.utcnow().isoformat() + "Z",
         "chunk_count": len(chunks),
     }
+
+    if not metadata_available:
+        response["warning"] = (
+            "Policy metadata store is unavailable. The policy was uploaded to the vector database, "
+            "but metadata information could not be saved."
+        )
+
+    return response
 
 
 @router.get("/policies")
@@ -87,6 +95,22 @@ def delete_policy(file_name: str = Query(..., description="The filename of the p
         raise HTTPException(status_code=500, detail=str(exc))
 
     vector_deleted = delete_policy_chunks(file_name)
+
+    if metadata_deleted is None:
+        if vector_deleted:
+            return {
+                "message": (
+                    f"Policy '{file_name}' deleted from ChromaDB. MongoDB metadata store "
+                    "was unavailable, so metadata may still exist."
+                )
+            }
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Policy '{file_name}' could not be deleted because the MongoDB metadata "
+                "store is unavailable and the vector document was not found."
+            ),
+        )
 
     if not metadata_deleted and not vector_deleted:
         raise HTTPException(status_code=404, detail=f"Policy '{file_name}' not found.")

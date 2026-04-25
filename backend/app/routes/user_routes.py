@@ -12,9 +12,6 @@ def recommend(user: UserProfile):
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    if not result or result.get("why_this_policy") == "Not found in policy documents":
-        raise HTTPException(status_code=404, detail="Not found in policy documents")
-
     # Return structured keys directly so the frontend can render the table and cards.
     return {
         "peer_comparison": result.get("peer_comparison", []),

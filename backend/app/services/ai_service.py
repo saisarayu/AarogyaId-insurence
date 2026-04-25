@@ -127,7 +127,7 @@ def generate_recommendation(user_profile: dict) -> dict[str, Any]:
         return {
             "peer_comparison": [],
             "coverage_details": {},
-            "why_this_policy": "Not found in policy documents",
+            "why_this_policy": "No policy documents are available. Please upload a policy before requesting a recommendation.",
             "source_policies": [],
         }
 
