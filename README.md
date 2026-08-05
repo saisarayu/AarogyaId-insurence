@@ -1,31 +1,39 @@
 # AarogyaAid: AI-Powered Health Insurance Platform
 
-AarogyaAid is a personalized, AI-driven health insurance recommendation platform designed to help working-age Indian adults navigate complex policy documents. Instead of generic comparisons, AarogyaAid utilizes Retrieval-Augmented Generation (RAG) to scan real insurance policy PDFs and recommend the best plan based on a user's age, income, lifestyle, and pre-existing conditions.
+AarogyaAid is a personalized, AI-powered health insurance recommendation platform that analyzes policy documents using Retrieval-Augmented Generation (RAG). It helps users compare plans, get structured policy insights, and ask follow-up questions through an AI chat assistant.
 
 ## 🚀 Key Features
 
-* **Smart User Profiling:** Captures 6 critical data points (Name, Age, Lifestyle, Medical Conditions, Income, City Tier).
-* **RAG-Powered AI Recommendations:** 
-  * Generates a deterministic **Peer Comparison Table** scoring policies against the user profile.
-  * Extracts exact **Coverage Details** (Inclusions, Exclusions, Sub-limits, Co-pays).
-  * Writes an empathetic, personalized explanation ("Why This Policy") grounding the recommendation to the user's specific health and financial risks.
-* **Interactive AI Chat Assistant:** Allows users to ask specific follow-up questions about their recommendations in plain English (e.g., "What is a waiting period?", "Does this cover my diabetes?"). 
-* **Admin Vector Database Dashboard:** A secure admin panel allowing staff to upload new insurance PDFs, JSONs, or TXT files. The system automatically chunks the text, creates embeddings, and updates the ChromaDB vector store.
+* **Personalized health insurance recommendations** based on user profile fields such as name, age, lifestyle, medical conditions, income, and city.
+* **RAG-based policy retrieval** using ChromaDB and OpenAI embeddings to ground recommendations in real policy text.
+* **Structured recommendation outputs** returned as JSON keys: `peer_comparison`, `coverage_details`, `why_this_policy`, and `source_policies`.
+* **AI chat assistant** that answers policy-related questions from the retrieved policy chunks while avoiding medical advice.
+* **Admin upload dashboard** for PDF, TXT, and JSON policy files, with automatic text extraction, chunking, embedding, and vector store indexing.
+* **MongoDB metadata store** for policy upload metadata and ChromaDB for vector search.
 
 ## 🛠 Tech Stack
 
-* **Frontend:** React, Vite, Tailwind CSS (Custom UI design without generic component libraries).
-* **Backend:** FastAPI, Python 3.10+.
-* **AI & LLMs:** LangChain, OpenAI (`gpt-3.5-turbo`, `text-embedding-ada-002`).
-* **Databases:** 
-  * **ChromaDB (v1.x PersistentClient):** Vector store for policy document embeddings.
-  * **MongoDB:** Document metadata store (file names, upload dates, statuses).
+* **Frontend:** React, Vite, Tailwind CSS
+* **Backend:** FastAPI, Python 3.10+
+* **AI & LLMs:** LangChain, OpenAI API (`gpt-3.5-turbo`)
+* **Vector store:** ChromaDB (PersistentClient v1.x)
+* **Metadata store:** MongoDB
+* **PDF parsing:** pdfplumber
 
-## ⚙️ Architecture & Design Decisions
+## 🔍 Implementation Notes
 
-1. **Strict JSON Data Contracts:** To solve the gap between unpredictable generative AI text and structured UI elements, the backend forces the LLM to output rigid JSON formats. This guarantees the React frontend always receives pristine data for rendering complex UI tables and stat cards rather than giant blocks of Markdown.
-2. **Context-Aware Overlapping Chunking:** When parsing uploaded PDFs, a specific sliding-window chunker extracts 500-character blocks with a 50-character overlap. This guarantees that the RAG queries never truncate critical mid-sentence policy clauses.
-3. **Decoupled Architecture:** The system separates vector storage (ChromaDB) from metadata scaling (MongoDB).
+* `backend/app/services/ai_service.py` builds a RAG prompt, retrieves relevant policy chunks, and requests strict JSON from the LLM.
+* `backend/app/services/rag_service.py` stores policy chunks and embeddings in a local ChromaDB persistence directory and performs semantic search.
+* `backend/app/services/parser_service.py` extracts text from PDF, TXT, or JSON uploads and chunks content into overlapping 500-character segments.
+* `backend/app/routes/admin_routes.py` supports `/upload-policy`, `/policies`, and `/delete-policy`.
+* `backend/app/routes/user_routes.py` supports `/recommend` and `/chat`.
+* `frontend/src/services/api.js` calls the backend API endpoints from the React app.
+
+## ⚙️ Architecture & Design
+
+1. **RAG pipeline:** Uploaded policies are chunked and embedded into ChromaDB, then retrieved with query embeddings using OpenAI.
+2. **Structured JSON responses:** The backend enforces structured outputs so the React UI can safely render tables and cards.
+3. **Separate metadata store:** MongoDB stores upload metadata, while ChromaDB holds vectorized policy chunks.
 
 ---
 
@@ -34,39 +42,42 @@ AarogyaAid is a personalized, AI-driven health insurance recommendation platform
 ### Prerequisites
 * Python 3.10+
 * Node.js v18+
-* A running MongoDB server (local or Atlas URI)
-* OpenAI API Key
+* MongoDB server or Atlas cluster
+* OpenAI API key
 
-### 1. Backend Setup
+### Backend setup
 
 ```bash
 cd backend
-
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Create your environment variables
-# Add the following to backend/.env
-# OPENAI_API_KEY="sk-your-openai-api-key"
-# MONGODB_URI="mongodb://localhost:27017" # Or your MongoDB Atlas URI
+Create `backend/.env` with:
 
-# Start the FastAPI server
+```env
+OPENAI_API_KEY="sk-your-openai-api-key"
+MONGODB_URI="mongodb://localhost:27017"
+CHROMA_PERSIST_DIR="./chromadb"
+CHROMA_COLLECTION_NAME="insurance_policies"
+```
+
+Run the backend:
+
+```bash
 uvicorn app.main:app --reload
 ```
-*Backend will run at `http://localhost:8000`*
 
-### 2. Frontend Setup
+The backend will be available at `http://localhost:8000`.
+
+### Frontend setup
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the Vite development server
 npm run dev
 ```
-*Frontend will run at `http://localhost:5173`*
+
+The frontend will be available at `http://localhost:5173`.
 
 ## 📁 Project Structure
 
@@ -74,20 +85,21 @@ npm run dev
 insurance-ai/
 ├── backend/
 │   ├── app/
-│   │   ├── config/          # MongoDB & Settings Pydantic configs
-│   │   ├── models/          # User & Metadata schemas
-│   │   ├── routes/          # API endpoints (User & Admin)
-│   │   └── services/        # AI, RAG ChromaDB, Parser, and Mongo services
-│   ├── policies/            # Local storage for uploaded PDF/TXT files
-│   ├── .env                 # API Keys
-│   └── requirements.txt
-└── frontend/
-    ├── src/
-    │   ├── components/      # UserForm, Recommendation, ChatBox, AdminPanel
-    │   ├── pages/           # Home & Admin Layouts
-    │   ├── services/
-    │   │   └── api.js       # Axios API client
-    │   ├── App.jsx          # React Router layout
-    │   └── index.css        # Tailwind Design Tokens
-    └── vite.config.js
+│   │   ├── config/          # MongoDB connection, settings, and environment config
+│   │   ├── models/          # Pydantic request/response models
+│   │   ├── routes/          # FastAPI user/admin endpoints
+│   │   ├── services/        # RAG, AI, parser, and metadata services
+│   ├── chromadb/            # Local ChromaDB persistence store
+│   ├── policies/            # Uploaded source policy files
+│   ├── requirements.txt     # Python dependencies
+├── frontend/
+│   ├── public/              # Static frontend assets
+│   ├── src/
+│   │   ├── components/      # UI components for dashboard, chat, profile, recommendation
+│   │   ├── pages/           # Home and Admin page views
+│   │   ├── services/        # Frontend API client
+│   ├── package.json         # Frontend dependencies and scripts
+│   ├── tailwind.config.js   # Tailwind config
+│   ├── vite.config.js       # Vite config
+└── README.md
 ```
