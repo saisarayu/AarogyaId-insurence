@@ -44,14 +44,25 @@ def _get_llm() -> ChatOpenAI:
     return ChatOpenAI(
         model="gpt-3.5-turbo",
         temperature=0.0,
-        openai_api_key=settings.OPENAI_API_KEY,
     )
 
 
 def _invoke_llm(llm: ChatOpenAI, prompt: str) -> str:
     """Invoke the LLM using the v0.2+ API (llm.invoke instead of deprecated llm.predict)."""
     response = llm.invoke([HumanMessage(content=prompt)])
-    return response.content.strip()
+    content = response.content
+    if isinstance(content, list):
+        if not content:
+            return ""
+        if all(isinstance(item, str) for item in content):
+            return " ".join(str(item).strip() for item in content if item).strip()
+        return " ".join(
+            item if isinstance(item, str) else json.dumps(item, ensure_ascii=False)
+            for item in content
+        ).strip()
+    if isinstance(content, str):
+        return content.strip()
+    return str(content).strip()
 
 
 def _build_user_profile_context(user_profile: dict) -> str:

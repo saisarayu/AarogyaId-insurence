@@ -26,6 +26,9 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 @router.post("/upload-policy")
 async def upload_policy(file: UploadFile = File(...)):
     try:
+        if file.filename is None:
+            raise HTTPException(status_code=400, detail="Uploaded file must have a filename.")
+
         file_path = UPLOAD_DIR / file.filename
         content = await file.read()
         file_path.write_bytes(content)

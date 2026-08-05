@@ -13,10 +13,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Mapping, Sequence, cast
 
-import chromadb
+from chromadb import PersistentClient
 from langchain_openai import OpenAIEmbeddings
+from pydantic import SecretStr
+from chromadb.api.types import Metadata
+
 
 from app.config.settings import settings
 
@@ -61,9 +64,11 @@ def _save_policy_index(index: list[dict[str, Any]]) -> None:
 # ChromaDB helpers — v1.x API
 # ---------------------------------------------------------------------------
 
-def _get_client() -> chromadb.PersistentClient:
-    """Return a ChromaDB PersistentClient (v1.x API)."""
-    return chromadb.PersistentClient(path=str(_ensure_persist_directory()))
+def _get_client():
+    """Return a ChromaDB client (v1.x API)."""
+    # Use persistent client for v1.x — ensure we persist to the configured directory.
+    persist_dir = str(_ensure_persist_directory())
+    return PersistentClient(path=persist_dir)
 
 
 def _get_collection():
@@ -73,7 +78,18 @@ def _get_collection():
 
 
 def _get_embedder() -> OpenAIEmbeddings:
-    return OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+    """
+    Build the OpenAI embeddings client.
+
+    langchain_openai.OpenAIEmbeddings (Pydantic v2) types `api_key` as
+    SecretStr | Callable | None — not plain str — so we wrap the configured
+    key explicitly. This also fails fast with a clear error if the key is
+    missing, instead of surfacing a confusing auth error later inside the
+    OpenAI client.
+    """
+    if not settings.OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    return OpenAIEmbeddings(api_key=SecretStr(settings.OPENAI_API_KEY))
 
 
 # ---------------------------------------------------------------------------
@@ -86,9 +102,11 @@ def store_policy_chunks(policy_name: str, source_file: str, chunks: list[str]) -
     embedder = _get_embedder()
 
     # Generate embeddings for all chunks upfront.
-    embeddings = embedder.embed_documents(chunks)
+    # ChromaDB's type stubs can be overly strict for the returned embedding list,
+    # so keep the runtime value while treating it as Any for typing.
+    embeddings: Any = embedder.embed_documents(chunks)
 
-    metadatas = [
+    metadatas: list[Metadata] = [
         {
             "policy_name": policy_name,
             "source_file": source_file,
