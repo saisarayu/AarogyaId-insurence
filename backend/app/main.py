@@ -33,4 +33,6 @@ def home():
 
 
 app.include_router(user_routes.router)
+app.include_router(user_routes.router, prefix="/api/user")
 app.include_router(admin_routes.router)
+app.include_router(admin_routes.router, prefix="/api")

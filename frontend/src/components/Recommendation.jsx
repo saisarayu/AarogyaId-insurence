@@ -1,10 +1,27 @@
+import React, { useState, useMemo } from 'react';
+import RecommendationCard from './RecommendationCard';
+import PolicyDetailsModal from './PolicyDetailsModal';
+
 const Recommendation = ({ data, loading }) => {
+  const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [activeTab, setActiveTab] = useState('all_matching');
+
+  // Filters state
+  const [filterScheme, setFilterScheme] = useState('All');
+  const [filterMinCoverage, setFilterMinCoverage] = useState(0);
+  const [filterSearch, setFilterSearch] = useState('');
+
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-12 text-center card-shadow">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-8 w-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin mb-4"></div>
-          <p className="text-slate-500 font-medium tracking-wide">Analyzing policy documents...</p>
+      <div className="bg-white rounded-2xl p-10 border border-slate-200 shadow-sm text-center space-y-4 animate-pulse">
+        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl mx-auto animate-spin">
+          ⚡
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-800 text-sm">Evaluating Policy Match Engine</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+            Checking today's active schedule, income limits, age eligibility & disease coverage...
+          </p>
         </div>
       </div>
     );
@@ -12,128 +29,205 @@ const Recommendation = ({ data, loading }) => {
 
   if (!data) return null;
 
-  const { peerComparison, coverageDetails, whyThisPolicy } = data;
-  const hasPeers = Array.isArray(peerComparison) && peerComparison.length > 0;
+  const targetDay = data.target_day || data.coverageDetails?.target_day || 'Today';
+  const selectedDiseases = data.selected_diseases || [];
 
-  const getScoreColor = (scoreStr) => {
-    // If it's a number/percentage-like string, we try to parse it
-    const val = parseInt(String(scoreStr).replace(/\D/g, ''), 10);
-    if (!isNaN(val)) {
-      if (val >= 85) return 'text-green-500 border-green-500';
-      if (val >= 70) return 'text-yellow-500 border-yellow-500';
-      return 'text-red-500 border-red-500';
-    }
-    return 'text-indigo-500 border-indigo-500'; // fallback
-  };
+  const rawRecommended = data.recommended_policies || data.peerComparison || [];
+  const rawCombo = data.combo_policies || rawRecommended.filter((p) => (p.match_count || 0) >= 2);
+  const byDiseaseMap = data.by_disease || {};
+  const allSystemPolicies = data.all_system_policies || rawRecommended;
+
+  // Build active list based on activeTab
+  let activeList = rawRecommended;
+  if (activeTab === 'combo') {
+    activeList = rawCombo;
+  } else if (activeTab.startsWith('disease:')) {
+    const dName = activeTab.replace('disease:', '');
+    activeList = byDiseaseMap[dName] || rawRecommended.filter((p) => {
+      const cats = (p.disease_categories || []).map((c) => c.toLowerCase());
+      return cats.some((c) => c.includes(dName.toLowerCase()));
+    });
+  } else if (activeTab === 'all_system') {
+    activeList = allSystemPolicies;
+  }
+
+  // Apply User Dashboard Filters
+  const filteredPolicies = activeList.filter((p) => {
+    const scheme = p.scheme_type || 'Government';
+    const coverage = p.coverage_amount || 500000;
+    const name = p.policy_name || '';
+    const desc = p.description || '';
+
+    const matchScheme = filterScheme === 'All' || scheme.toLowerCase() === filterScheme.toLowerCase();
+    const matchCoverage = coverage >= filterMinCoverage;
+    const matchSearch =
+      name.toLowerCase().includes(filterSearch.toLowerCase()) ||
+      desc.toLowerCase().includes(filterSearch.toLowerCase());
+
+    return matchScheme && matchCoverage && matchSearch;
+  });
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 card-shadow overflow-hidden p-6 space-y-6">
-      
-      <div className="flex justify-between items-start">
+    <div className="space-y-4 animate-fade-in">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-5 rounded-2xl text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Your Top Insurance Recommendations</h2>
-          <p className="text-sm text-slate-500 mt-1">Based on your profile and our AI analysis</p>
-        </div>
-        {hasPeers && (
-          <div className="bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100 flex items-center gap-1.5">
-            ⭐ {peerComparison.length} Best Matches Found
-          </div>
-        )}
-      </div>
-
-      {/* Styled Table */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="table-header border-b border-indigo-700">
-              <tr>
-                {['Policy Name', 'Insurer', 'Premium (Annual)', 'Cover Amount', 'Waiting Period', 'Key Benefit', 'Suitability Score'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left font-medium tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {hasPeers ? peerComparison.map((item, i) => (
-                <tr key={i} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-4 text-slate-800 font-medium">{item.policy_name ?? item.policyName ?? '—'}</td>
-                  <td className="px-5 py-4 text-slate-600 font-medium flex items-center gap-2">
-                    <div className="w-6 h-6 bg-slate-100 rounded text-[10px] flex items-center justify-center font-bold text-slate-400 border border-slate-200 overflow-hidden">
-                       {(item.insurer || 'IC').substring(0,2).toUpperCase()}
-                    </div>
-                    {item.insurer ?? '—'}
-                  </td>
-                  <td className="px-5 py-4 text-slate-800 font-medium">{item.premium ?? '—'}</td>
-                  <td className="px-5 py-4 text-slate-600">{item.cover ?? '—'}</td>
-                  <td className="px-5 py-4 text-slate-600">{item.waiting_period ?? item.waitingPeriod ?? '—'}</td>
-                  <td className="px-5 py-4 text-slate-600">{item.benefit ?? item.key_benefit ?? '—'}</td>
-                  <td className="px-5 py-4 text-center">
-                    <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-bold text-[11px] mx-auto ${getScoreColor(item.score ?? item.suitability_score)}`}>
-                      {item.score ?? item.suitability_score ?? '--'}
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                   <td colSpan={7} className="text-center py-6 text-slate-500">No peers data extracted from document.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="bg-slate-50 px-5 py-2.5 text-xs text-slate-500 border-t border-slate-200 flex items-center gap-1.5">
-          <span className="text-slate-400">ℹ</span> Scores are based on your profile match, coverage, and benefits analysis
-        </div>
-      </div>
-
-      {/* Cards Row */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        
-        {/* Coverage Details */}
-        <div className="border border-indigo-100 bg-[#FBFAFF] rounded-xl p-5 card-shadow">
-          <div className="flex items-center gap-2 mb-4">
-             <span className="text-indigo-600 bg-indigo-100 rounded-lg p-1.5 w-7 h-7 flex items-center justify-center">🛡</span>
-             <h3 className="font-semibold text-indigo-900">Coverage Details</h3>
-          </div>
-          
-          <div className="space-y-4">
-            {[
-              { icon: '✓', color: 'text-green-500', name: 'Inclusions', val: coverageDetails?.inclusions },
-              { icon: '✕', color: 'text-red-500', name: 'Exclusions', val: coverageDetails?.exclusions },
-              { icon: '✓', color: 'text-green-500', name: 'Sub-limits', val: coverageDetails?.sub_limits },
-              { icon: '◷', color: 'text-blue-500', name: 'Co-pay', val: coverageDetails?.co_pay },
-              { icon: '🏥', color: 'text-indigo-500', name: 'Claim Type', val: coverageDetails?.claim_type },
-            ].map(item => (
-              <div key={item.name} className="flex items-start gap-4 text-sm">
-                <span className={`font-bold mt-0.5 w-4 text-center ${item.color}`}>{item.icon}</span>
-                <div>
-                  <p className="font-medium text-slate-700">{item.name}</p>
-                  <p className="text-slate-500 mt-0.5 leading-relaxed">{item.val && item.val !== 'Not available' ? item.val : 'Not specified'}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Why this policy */}
-        <div className="border border-indigo-100 bg-[#FBFAFF] rounded-xl p-5 card-shadow flex flex-col">
-          <div className="flex items-center gap-2 mb-4">
-             <span className="text-indigo-600 bg-indigo-100 rounded-lg p-1.5 w-7 h-7 flex items-center justify-center">💡</span>
-             <h3 className="font-semibold text-indigo-900">Why This Policy?</h3>
-          </div>
-          <div className="text-sm text-slate-700 leading-relaxed flex-1 whitespace-pre-line">
-            {whyThisPolicy || 'No subjective explanation provided by the model.'}
-          </div>
-          <div className="mt-4 pt-4 border-t border-indigo-100 flex flex-wrap gap-2">
-            {['Age Appropriate', 'Condition Coverage', 'City Relevant'].map(badge => (
-              <span key={badge} className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-semibold px-2 py-1 rounded-md">
-                {badge}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-black tracking-tight">Recommended Policies</h2>
+            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+              {rawRecommended.length} Eligible Found
+            </span>
+            {selectedDiseases.length > 0 && (
+              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                Selected: {selectedDiseases.join(', ')}
               </span>
-            ))}
+            )}
           </div>
+          <p className="text-xs text-slate-300 mt-1">
+            Active on <span className="font-bold text-white">{targetDay}</span> · Grounded in verified policy specifications
+          </p>
         </div>
 
+        <div className="text-xs bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 text-slate-200">
+          📅 Active Schedule Verified
+        </div>
       </div>
 
+      {/* Category View Tabs (All Matching, Combos, Disease Tabs, All System Policies) */}
+      <div className="bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200 flex flex-wrap gap-1.5 text-xs font-bold">
+        <button
+          onClick={() => setActiveTab('all_matching')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+            activeTab === 'all_matching'
+              ? 'bg-white text-indigo-700 shadow-sm border border-slate-200'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          }`}
+        >
+          <span>🎯 All Matching</span>
+          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px]">
+            {rawRecommended.length}
+          </span>
+        </button>
+
+        {rawCombo.length > 0 && (
+          <button
+            onClick={() => setActiveTab('combo')}
+            className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+              activeTab === 'combo'
+                ? 'bg-white text-purple-700 shadow-sm border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            }`}
+          >
+            <span>✨ Combo Policies</span>
+            <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-[10px]">
+              {rawCombo.length}
+            </span>
+          </button>
+        )}
+
+        {/* Individual Selected Disease Tabs */}
+        {selectedDiseases.map((d) => {
+          const tabKey = `disease:${d}`;
+          const dCount = (byDiseaseMap[d] || []).length;
+          return (
+            <button
+              key={d}
+              onClick={() => setActiveTab(tabKey)}
+              className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                activeTab === tabKey
+                  ? 'bg-white text-emerald-700 shadow-sm border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>🩺 {d} Policies</span>
+              <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px]">
+                {dCount}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          onClick={() => setActiveTab('all_system')}
+          className={`px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+            activeTab === 'all_system'
+              ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+          }`}
+        >
+          <span>📁 All System Policies</span>
+          <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-[10px]">
+            {allSystemPolicies.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <span className="text-slate-400">🔍</span>
+          <input
+            type="text"
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            placeholder={`Search ${activeTab.replace('disease:', '')} policies...`}
+            className="w-full bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-slate-600">Scheme:</span>
+            {['All', 'Government', 'Private'].map((sc) => (
+              <button
+                key={sc}
+                onClick={() => setFilterScheme(sc)}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  filterScheme === sc ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {sc}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-slate-600">Min Coverage:</span>
+            <select
+              value={filterMinCoverage}
+              onChange={(e) => setFilterMinCoverage(Number(e.target.value))}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700"
+            >
+              <option value={0}>Any Coverage</option>
+              <option value={300000}>₹3 Lakhs+</option>
+              <option value={500000}>₹5 Lakhs+</option>
+              <option value={750000}>₹7.5 Lakhs+</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Recommended Policies Cards Grid */}
+      {filteredPolicies.length === 0 ? (
+        <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">
+          No policies match the current tab and filter criteria.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPolicies.map((policy, idx) => (
+            <RecommendationCard
+              key={policy.id || policy.file_name || idx}
+              policy={policy}
+              onViewDetails={(p) => setSelectedPolicy(p)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Details View Modal */}
+      {selectedPolicy && (
+        <PolicyDetailsModal policy={selectedPolicy} onClose={() => setSelectedPolicy(null)} />
+      )}
     </div>
   );
 };

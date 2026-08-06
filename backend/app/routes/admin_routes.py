@@ -1,136 +1,213 @@
+import json
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from pathlib import Path
+from typing import List, Optional
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
+from app.models.policy_model import PolicyCreate, PolicyUpdate
 from app.services.parser_service import chunk_text, extract_text
-from app.services.policy_metadata_service import (
-    delete_policy_metadata,
-    insert_policy_metadata,
-    list_policy_metadata,
-    policy_metadata_exists,
+from app.services.policy_service import (
+    DAYS_OF_WEEK,
+    POLICIES_DIR,
+    delete_policy_by_id_or_name,
+    get_policy_by_identifier,
+    list_policies_raw,
+    save_policy,
 )
 from app.services.rag_service import (
     delete_policy_chunks,
-    list_uploaded_documents,
     store_policy_chunks,
 )
 
 router = APIRouter(tags=["admin"])
 
-# Absolute path so uvicorn can be started from any directory.
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "policies"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-
 
 @router.post("/upload-policy")
-async def upload_policy(file: UploadFile = File(...)):
+@router.post("/admin/policies")
+async def create_or_upload_policy(
+    file: Optional[UploadFile] = File(None),
+    policy_name: str = Form(...),
+    description: Optional[str] = Form(""),
+    insurer: Optional[str] = Form("National Health Care"),
+    disease_categories: str = Form("[]"),  # JSON string or comma-separated
+    eligibility_criteria: Optional[str] = Form("Standard eligibility"),
+    annual_income_limit: float = Form(10000000.0),
+    min_age: int = Form(0),
+    max_age: int = Form(100),
+    scheme_type: str = Form("Government"),
+    coverage_amount: float = Form(500000.0),
+    required_documents: str = Form("[]"),
+    status: str = Form("Active"),
+    activation_days: str = Form("[]"),
+):
     try:
-        if file.filename is None:
-            raise HTTPException(status_code=400, detail="Uploaded file must have a filename.")
+        # Parse JSON or comma-separated lists
+        def parse_list(raw_val: str) -> List[str]:
+            if not raw_val:
+                return []
+            raw_val = raw_val.strip()
+            if raw_val.startswith("["):
+                try:
+                    res = json.loads(raw_val)
+                    if isinstance(res, list):
+                        return [str(x).strip() for x in res if str(x).strip()]
+                except Exception:
+                    pass
+            return [x.strip() for x in raw_val.split(",") if x.strip()]
 
-        file_path = UPLOAD_DIR / file.filename
-        content = await file.read()
-        file_path.write_bytes(content)
+        cat_list = parse_list(disease_categories)
+        doc_list = parse_list(required_documents)
+        days_list = parse_list(activation_days) or DAYS_OF_WEEK
 
-        try:
-            text = extract_text(str(file_path))
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        # File Handling
+        file_name = ""
+        if file and file.filename:
+            file_name = file.filename
+            file_path = POLICIES_DIR / file_name
+            content = await file.read()
+            file_path.write_bytes(content)
 
-        metadata_available = True
-        try:
-            exists = policy_metadata_exists(file.filename)
-            if exists is True:
-                raise HTTPException(status_code=400, detail=f"Policy '{file.filename}' already exists.")
-            if exists is None:
-                metadata_available = False
-        except RuntimeError as exc:
-            raise HTTPException(status_code=500, detail=str(exc))
+            # RAG indexing if PDF/TXT
+            try:
+                text = extract_text(str(file_path))
+                chunks = chunk_text(text)
+                if chunks:
+                    store_policy_chunks(
+                        policy_name=policy_name,
+                        source_file=file_name,
+                        chunks=chunks,
+                    )
+            except Exception:
+                pass  # Optional index fallback
+        else:
+            # Generate a PDF stub if no file uploaded
+            safe_name = policy_name.lower().replace(" ", "_").replace("/", "_")
+            file_name = f"{safe_name}.pdf"
+            file_path = POLICIES_DIR / file_name
+            if not file_path.exists():
+                pdf_content = (
+                    f"%PDF-1.4\n1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj\n"
+                    f"2 0 obj <</Type /Pages /Count 1 /Kids [3 0 R]>> endobj\n"
+                    f"3 0 obj <</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R>> endobj\n"
+                    f"4 0 obj <</Length 100>> stream\nBT /F1 12 Tf 50 700 TD ({policy_name} - {insurer}) Tj ET\nendstream\nendobj\n"
+                    f"xref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000056 00000 n \n0000000111 00000 n \n0000000212 00000 n \n"
+                    f"trailer <</Size 5 /Root 1 0 R>>\nstartxref\n360\n%%EOF"
+                )
+                file_path.write_bytes(pdf_content.encode("latin-1"))
 
-        chunks = chunk_text(text)
-        if not chunks:
-            raise HTTPException(status_code=400, detail="Uploaded document contained no usable text.")
-
-        # Store embeddings/chunks in ChromaDB.
-        store_policy_chunks(
-            policy_name=file.filename,
-            source_file=file.filename,
-            chunks=chunks,
-        )
-
-        insert_policy_metadata(
-            policy_name=file.filename,
-            file_name=file.filename,
-            insurer=None,
-        )
-
-        response = {
-            "message": "Upload successful and stored in vector DB.",
-            "policy_name": file.filename,
-            "uploaded_at": datetime.utcnow().isoformat() + "Z",
-            "chunk_count": len(chunks),
+        policy_dict = {
+            "policy_name": policy_name,
+            "file_name": file_name,
+            "description": description or f"Health insurance scheme covering {', '.join(cat_list)}.",
+            "insurer": insurer,
+            "disease_categories": cat_list,
+            "eligibility_criteria": eligibility_criteria,
+            "annual_income_limit": annual_income_limit,
+            "min_age": min_age,
+            "max_age": max_age,
+            "scheme_type": scheme_type,
+            "coverage_amount": coverage_amount,
+            "required_documents": doc_list,
+            "status": status,
+            "activation_days": days_list,
+            "upload_date": datetime.utcnow().isoformat() + "Z",
         }
 
-        if not metadata_available:
-            response["warning"] = (
-                "Policy metadata store is unavailable. The policy was uploaded to the vector database, "
-                "but metadata information could not be saved."
-            )
+        saved = save_policy(policy_dict)
 
-        return response
+        return {
+            "message": "Policy successfully created/uploaded.",
+            "policy": saved,
+        }
+
     except Exception as e:
         import traceback
-        error_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-        raise HTTPException(status_code=500, detail=error_msg)
+        raise HTTPException(status_code=500, detail=f"Failed to upload policy: {str(e)}\n{traceback.format_exc()}")
 
 
 @router.get("/policies")
+@router.get("/admin/policies")
 def list_policies():
-    try:
-        policies = list_policy_metadata()
-    except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    """Returns all stored policies for Admin management."""
+    policies = list_policies_raw()
+    return {"policies": policies, "total": len(policies)}
 
-    return {"policies": policies}
+
+@router.get("/admin/stats")
+def get_admin_stats():
+    """Return dashboard analytics for the admin panel."""
+    policies = list_policies_raw()
+    total_policies = len(policies)
+    active_policies = sum(1 for p in policies if p.get("status", "Active").lower() == "active")
+    inactive_policies = total_policies - active_policies
+    total_coverage = sum(float(p.get("coverage_amount", 0)) for p in policies)
+
+    # Categories breakdown
+    categories_count = {}
+    for p in policies:
+        for cat in p.get("disease_categories", []):
+            categories_count[cat] = categories_count.get(cat, 0) + 1
+
+    return {
+        "total_policies": total_policies,
+        "active_policies": active_policies,
+        "inactive_policies": inactive_policies,
+        "total_coverage_value": total_coverage,
+        "disease_breakdown": categories_count,
+    }
+
+
+@router.put("/admin/policies/{policy_id}")
+def update_policy(policy_id: str, updates: PolicyUpdate):
+    existing = get_policy_by_identifier(policy_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    update_data = updates.dict(exclude_unset=True)
+    existing.update(update_data)
+    saved = save_policy(existing)
+
+    return {"message": "Policy updated successfully", "policy": saved}
 
 
 @router.delete("/delete-policy")
-def delete_policy(file_name: str = Query(..., description="The filename of the policy to delete")):
+@router.delete("/admin/policies/{policy_id}")
+def delete_policy(
+    policy_id: Optional[str] = None,
+    file_name: Optional[str] = Query(None)
+):
+    target = policy_id or file_name
+    if not target:
+        raise HTTPException(status_code=400, detail="Must provide policy_id or file_name")
+
+    deleted = delete_policy_by_id_or_name(target)
     try:
-        metadata_deleted = delete_policy_metadata(file_name)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        delete_policy_chunks(target)
+    except Exception:
+        pass
 
-    vector_deleted = delete_policy_chunks(file_name)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Policy '{target}' not found.")
 
-    if metadata_deleted is None:
-        if vector_deleted:
-            return {
-                "message": (
-                    f"Policy '{file_name}' deleted from ChromaDB. MongoDB metadata store "
-                    "was unavailable, so metadata may still exist."
-                )
-            }
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                f"Policy '{file_name}' could not be deleted because the MongoDB metadata "
-                "store is unavailable and the vector document was not found."
-            ),
-        )
+    return {"message": f"Policy '{target}' deleted successfully."}
 
-    if not metadata_deleted and not vector_deleted:
-        raise HTTPException(status_code=404, detail=f"Policy '{file_name}' not found.")
-    if not metadata_deleted:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Policy '{file_name}' could not be removed from metadata store.",
-        )
-    if not vector_deleted:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Policy '{file_name}' could not be removed from vector DB.",
-        )
 
-    return {"message": f"Policy '{file_name}' deleted from MongoDB and ChromaDB."}
+@router.post("/refresh-vector-db")
+def refresh_vector_db():
+    policies = list_policies_raw()
+    refreshed = []
+    for pol in policies:
+        fname = pol.get("file_name")
+        if fname:
+            fpath = POLICIES_DIR / fname
+            if fpath.exists():
+                try:
+                    text = extract_text(str(fpath))
+                    chunks = chunk_text(text)
+                    if chunks:
+                        delete_policy_chunks(fname)
+                        store_policy_chunks(policy_name=pol.get("policy_name", fname), source_file=fname, chunks=chunks)
+                        refreshed.append(fname)
+                except Exception:
+                    pass
+    return {"message": f"Refreshed vector database for {len(refreshed)} policies.", "policies": refreshed}
