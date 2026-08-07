@@ -6,19 +6,13 @@ Extracted from ai_service.py so each service has a single responsibility:
   - chat_service.py     → chat_with_user()
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
 from app.config.settings import settings
 from app.services.rag_service import retrieve_policy_chunks
-
-if TYPE_CHECKING:
-    # Avoid importing google.genai at type-check time if the package isn't installed
-    from typing import Any
-
-genai: Any = None
 
 MEDICAL_ADVICE_KEYWORDS = [
     "medical advice", "diagnose", "doctor", "prescribe",
@@ -42,15 +36,13 @@ def _invoke_ai(prompt: str) -> str:
     # 1. Try Gemini SDK
     if settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY or api_key.startswith("AIza"):
         try:
-            # Import google.genai dynamically to avoid static import issues in analyzers
-            import importlib
-            genai_mod = importlib.import_module("google.genai")
-            client = genai_mod.Client(api_key=api_key)
+            from google import genai
+            client = genai.Client(api_key=api_key)
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
                 contents=prompt,
             )
-            if response and getattr(response, "text", None):
+            if response and response.text:
                 return response.text.strip()
         except Exception:
             pass
@@ -72,14 +64,7 @@ def _invoke_ai(prompt: str) -> str:
     try:
         from langchain_openai import ChatOpenAI
         from langchain_core.messages import HumanMessage
-        # ChatOpenAI expects api_key as SecretStr | None; convert if we have a plain string
-        try:
-            from pydantic import SecretStr
-            ak = SecretStr(api_key) if api_key else None
-        except Exception:
-            # If SecretStr is not available, fall back to None to match expected type
-            ak = None
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, api_key=ak)
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, api_key=api_key)
         response = llm.invoke([HumanMessage(content=prompt)])
         return str(response.content).strip()
     except Exception as exc:

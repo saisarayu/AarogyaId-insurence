@@ -35,10 +35,7 @@ def _invoke_ai(prompt: str) -> str:
     # 1. Try Gemini SDK
     if settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY or api_key.startswith("AIza"):
         try:
-            # importlib used to avoid static analysis errors when google.genai
-            # SDK is not installed in some developer environments.
-            import importlib
-            genai = importlib.import_module("google.genai")
+            from google import genai
             client = genai.Client(api_key=api_key)
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
@@ -64,20 +61,11 @@ def _invoke_ai(prompt: str) -> str:
 
     # 3. Fallback to OpenAI if configured
     try:
-        # Use standard LangChain imports
-        from langchain.chat_models import ChatOpenAI as ChatOpenAIClass
-        from langchain.schema import HumanMessage
-        # Ensure the imported class is callable before instantiation to avoid
-        # NoneType being called (static analysis warning / runtime guard).
-        if not callable(ChatOpenAIClass):
-            raise RuntimeError("ChatOpenAI class is not available from langchain.chat_models")
-        llm = ChatOpenAIClass(model_name="gpt-3.5-turbo", temperature=0.0, openai_api_key=api_key)
-        response = llm([HumanMessage(content=prompt)])
-        # response is a LLMResult-like object; extract text
-        if hasattr(response, 'generations') and response.generations:
-            return str(response.generations[0][0].text).strip()
-        # fallback to str conversion
-        return str(response).strip()
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import HumanMessage
+        llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0, api_key=api_key)
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return str(response.content).strip()
     except Exception as exc:
         raise RuntimeError(f"AI invocation failed: {exc}")
 

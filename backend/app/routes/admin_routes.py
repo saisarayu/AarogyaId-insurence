@@ -1,5 +1,4 @@
 import json
-import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -63,9 +62,7 @@ async def create_or_upload_policy(
         # File Handling
         file_name = ""
         if file and file.filename:
-            file_name = Path(file.filename).name
-            if not file_name:
-                raise HTTPException(status_code=400, detail="Uploaded file must include a valid filename.")
+            file_name = file.filename
             file_path = POLICIES_DIR / file_name
             content = await file.read()
             file_path.write_bytes(content)
@@ -85,7 +82,6 @@ async def create_or_upload_policy(
         else:
             # Generate a PDF stub if no file uploaded
             safe_name = policy_name.lower().replace(" ", "_").replace("/", "_")
-            safe_name = Path(safe_name).name
             file_name = f"{safe_name}.pdf"
             file_path = POLICIES_DIR / file_name
             if not file_path.exists():
@@ -125,7 +121,7 @@ async def create_or_upload_policy(
         }
 
     except Exception as e:
-        traceback.print_exc()
+        import traceback
         raise HTTPException(status_code=500, detail=f"Failed to upload policy: {str(e)}\n{traceback.format_exc()}")
 
 

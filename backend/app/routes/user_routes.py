@@ -121,15 +121,7 @@ def download_policy_pdf(file_name: str):
 def recommend_legacy(user: UserProfile):
     try:
         # Convert legacy user profile to recommendation engine query
-        raw_health = None
-        for attr in ("health_condition", "health_conditions", "condition", "medical_condition"):
-            if hasattr(user, attr):
-                raw_health = getattr(user, attr)
-                break
-        if isinstance(raw_health, list):
-            disease = raw_health[0] if raw_health else ""
-        else:
-            disease = str(raw_health).strip() if raw_health else ""
+        disease = user.preferred_coverage or user.health_condition or ""
         diseases = [disease] if disease else ["Cancer", "Diabetes"]
         
         income_map = {
@@ -138,8 +130,7 @@ def recommend_legacy(user: UserProfile):
             "8-15l": 1000000.0,
             "15l+": 1500000.0
         }
-        raw_income = getattr(user, "annual_income", None) or getattr(user, "income", "")
-        annual_income = income_map.get(str(raw_income).lower(), 500000.0)
+        annual_income = income_map.get((user.annual_income or "").lower(), 500000.0)
 
         result = evaluate_recommendations(
             diseases=diseases,

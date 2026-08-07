@@ -9,7 +9,6 @@ Key changes from the original (v0.3 API):
 - Empty-collection guard prevents IndexError on first-use
 """
 
-import importlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -21,12 +20,6 @@ from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 from chromadb.api.types import Metadata
 
-GoogleGenerativeAIEmbeddings = None
-try:
-    module = importlib.import_module("langchain_google_genai")
-    GoogleGenerativeAIEmbeddings = getattr(module, "GoogleGenerativeAIEmbeddings")
-except ImportError:
-    pass
 
 from app.config.settings import settings
 
@@ -92,8 +85,7 @@ def _get_embedder() -> Any:
 
     if settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY or api_key.startswith("AIza"):
         try:
-            module = importlib.import_module("langchain_google_genai")
-            GoogleGenerativeAIEmbeddings = getattr(module, "GoogleGenerativeAIEmbeddings")
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
             return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
         except Exception:
             pass
