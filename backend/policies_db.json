@@ -1,0 +1,288 @@
+[
+  {
+    "id": "pol_cancer_01",
+    "policy_name": "Ayushman Cancer Care Shield",
+    "file_name": "cancer_care_shield.pdf",
+    "insurer": "National Health Insurance Authority",
+    "description": "Comprehensive oncology coverage including chemotherapy, radiotherapy, targeted therapy, and post-treatment rehabilitation with zero co-payment.",
+    "disease_categories": [
+      "Cancer",
+      "Rare Diseases"
+    ],
+    "eligibility_criteria": "Resident of India, annual household income below Rs 5 Lakhs, age 0 to 75 years.",
+    "annual_income_limit": 500000.0,
+    "min_age": 0,
+    "max_age": 75,
+    "scheme_type": "Government",
+    "coverage_amount": 500000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Income Certificate",
+      "Medical History / Biopsy Report",
+      "Bank Passbook"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "pol_cardio_02",
+    "policy_name": "Pradhan Mantri Heart Health Yojana",
+    "file_name": "heart_health_yojana.pdf",
+    "insurer": "Ministry of Health & Family Welfare",
+    "description": "Full coverage for cardiac surgeries, angioplasty, pacemaker implantation, and treatment for Hypertension and Heart Disease.",
+    "disease_categories": [
+      "Heart Disease",
+      "Hypertension",
+      "Blood Disorders"
+    ],
+    "eligibility_criteria": "Low and middle income families, annual income up to Rs 3 Lakhs, all age groups up to 80.",
+    "annual_income_limit": 300000.0,
+    "min_age": 18,
+    "max_age": 80,
+    "scheme_type": "Government",
+    "coverage_amount": 750000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Ration Card",
+      "Cardiologist Consultation Report"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "upload_date": "2026-01-05T00:00:00Z"
+  },
+  {
+    "id": "pol_diab_kidney_03",
+    "policy_name": "Sanjivani Diabetes & Renal Support Scheme",
+    "file_name": "diabetes_kidney_care.pdf",
+    "insurer": "State Health Mission",
+    "description": "Dedicated financial protection for Diabetes, Chronic Kidney Disease, Kidney Dialysis, and Liver Disease management.",
+    "disease_categories": [
+      "Diabetes",
+      "Kidney Disease",
+      "Liver Disease"
+    ],
+    "eligibility_criteria": "Individuals with diagnosed metabolic or kidney disorders, income limit up to Rs 10 Lakhs.",
+    "annual_income_limit": 1000000.0,
+    "min_age": 20,
+    "max_age": 85,
+    "scheme_type": "Government",
+    "coverage_amount": 400000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Lab Diagnostic Reports (HbA1c/Creatinine)",
+      "Income Proof"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-01-10T00:00:00Z"
+  },
+  {
+    "id": "pol_neuro_04",
+    "policy_name": "Arogya Neuro Care & Stroke Plan",
+    "file_name": "neuro_stroke_care.pdf",
+    "insurer": "Star Health Insurance",
+    "description": "Specialized neurology scheme covering Stroke, Parkinson's Disease, Alzheimer's Disease, and brain disorder ICU admissions.",
+    "disease_categories": [
+      "Stroke",
+      "Parkinson's Disease",
+      "Alzheimer's Disease",
+      "Senior Citizen Care"
+    ],
+    "eligibility_criteria": "Senior citizens and adults with neuro-degenerative diseases, annual income up to Rs 8 Lakhs.",
+    "annual_income_limit": 800000.0,
+    "min_age": 40,
+    "max_age": 90,
+    "scheme_type": "Private",
+    "coverage_amount": 1000000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Neurology Assessment Report",
+      "Age Proof"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-01-15T00:00:00Z"
+  },
+  {
+    "id": "pol_resp_05",
+    "policy_name": "Swastha Pulmonary Protection Cover",
+    "file_name": "pulmonary_asthma_tb_care.pdf",
+    "insurer": "Care Health Insurance",
+    "description": "Complete hospitalization & respiratory aid cover for Asthma, Tuberculosis, and severe pulmonary infections.",
+    "disease_categories": [
+      "Asthma",
+      "Tuberculosis"
+    ],
+    "eligibility_criteria": "All individuals diagnosed with pulmonary conditions, income up to Rs 5 Lakhs.",
+    "annual_income_limit": 500000.0,
+    "min_age": 5,
+    "max_age": 70,
+    "scheme_type": "Private",
+    "coverage_amount": 350000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Chest X-Ray / Pulmonologist Prescription"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-01-20T00:00:00Z"
+  },
+  {
+    "id": "pol_maternal_06",
+    "policy_name": "Matru Vandana Pregnancy & Child Care Scheme",
+    "file_name": "pregnancy_child_care.pdf",
+    "insurer": "National Rural Health Mission",
+    "description": "Comprehensive maternity coverage including antenatal care, delivery charges, postnatal care, and newborn Child Health immunization.",
+    "disease_categories": [
+      "Pregnancy Care",
+      "Child Health"
+    ],
+    "eligibility_criteria": "Pregnant women and mothers with infants, income under Rs 3 Lakhs.",
+    "annual_income_limit": 300000.0,
+    "min_age": 18,
+    "max_age": 45,
+    "scheme_type": "Government",
+    "coverage_amount": 300000.0,
+    "required_documents": [
+      "MCP Card",
+      "Aadhaar Card",
+      "Bank Account Details"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-01-25T00:00:00Z"
+  },
+  {
+    "id": "pol_mental_ortho_07",
+    "policy_name": "Mind & Motion Comprehensive Health Cover",
+    "file_name": "mental_arthritis_care.pdf",
+    "insurer": "HDFC ERGO Health",
+    "description": "Integrated insurance for Arthritis, Joint Replacements, Mental Health Disorders, Eye Disorders, and Hearing Disorders.",
+    "disease_categories": [
+      "Arthritis",
+      "Mental Health Disorders",
+      "Eye Disorders",
+      "Hearing Disorders",
+      "Senior Citizen Care"
+    ],
+    "eligibility_criteria": "Adults seeking mental wellness support, orthopedic care, or sensory treatments. Income limit up to Rs 15 Lakhs.",
+    "annual_income_limit": 1500000.0,
+    "min_age": 18,
+    "max_age": 85,
+    "scheme_type": "Private",
+    "coverage_amount": 600000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Specialist Consultation Notes",
+      "Income Slip"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    "upload_date": "2026-02-01T00:00:00Z"
+  },
+  {
+    "policy_name": "Cloud Verified Policy",
+    "file_name": "test_upload_sample.pdf",
+    "description": "Health insurance scheme covering Cancer.",
+    "insurer": "National Health Care",
+    "disease_categories": [
+      "Cancer"
+    ],
+    "eligibility_criteria": "Standard eligibility",
+    "annual_income_limit": 500000.0,
+    "min_age": 0,
+    "max_age": 75,
+    "scheme_type": "Government",
+    "coverage_amount": 500000.0,
+    "required_documents": [],
+    "status": "Active",
+    "activation_days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-08-06T04:15:33.527437Z",
+    "id": "pol_99d19674"
+  },
+  {
+    "policy_name": "sajeeva seva",
+    "file_name": "lingual love .pdf",
+    "description": "Health insurance scheme covering Cancer, Diabetes, Heart Disease.",
+    "insurer": "town Health Care",
+    "disease_categories": [
+      "Cancer",
+      "Diabetes",
+      "Heart Disease"
+    ],
+    "eligibility_criteria": "Standard government eligibility criteria apply.",
+    "annual_income_limit": 500000.0,
+    "min_age": 0,
+    "max_age": 80,
+    "scheme_type": "Private",
+    "coverage_amount": 500000.0,
+    "required_documents": [
+      "Aadhaar Card",
+      "Income Certificate",
+      "Medical Reports"
+    ],
+    "status": "Active",
+    "activation_days": [
+      "Saturday",
+      "Sunday"
+    ],
+    "upload_date": "2026-08-06T04:18:23.974007Z",
+    "id": "pol_4ddc970f"
+  }
+]

@@ -1,19 +1,23 @@
-from typing import Literal
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
 class UserProfile(BaseModel):
-    name: str = Field(..., description="Full name of the user")
-    age: int = Field(..., ge=1, le=99, description="Age of the user")
-    lifestyle: Literal["Sedentary", "Moderate", "Active", "Athlete"]
-    conditions: list[str] = Field(default_factory=list)
-    income: Literal["under 3L", "3-8L", "8-15L", "15L+"]
-    city: Literal["Metro", "Tier-2", "Tier-3"]
+    name: Optional[str] = "Applicant"
+    age: Optional[int] = 35
+    lifestyle: Optional[str] = "Moderate"
+    conditions: List[str] = Field(default_factory=list)
+    diseases: List[str] = Field(default_factory=list)
+    income: Optional[Any] = "3-8L"
+    city: Optional[str] = "Metro"
+
+    class Config:
+        extra = "allow"
 
 
 class ChatRequest(BaseModel):
     question: str
-    user_profile: UserProfile
+    user_profile: Dict[str, Any] = Field(default_factory=dict)
 
 
 class DeletePolicyRequest(BaseModel):

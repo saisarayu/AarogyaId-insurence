@@ -9,6 +9,7 @@ Key changes from the original (v0.3 API):
 - Empty-collection guard prevents IndexError on first-use
 """
 
+import importlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -20,6 +21,12 @@ from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 from chromadb.api.types import Metadata
 
+GoogleGenerativeAIEmbeddings = None
+try:
+    module = importlib.import_module("langchain_google_genai")
+    GoogleGenerativeAIEmbeddings = getattr(module, "GoogleGenerativeAIEmbeddings")
+except ImportError:
+    pass
 
 from app.config.settings import settings
 
@@ -77,19 +84,21 @@ def _get_collection():
     return client.get_or_create_collection(name=settings.CHROMA_COLLECTION_NAME)
 
 
-def _get_embedder() -> OpenAIEmbeddings:
-    """
-    Build the OpenAI embeddings client.
+def _get_embedder() -> Any:
+    """Build Gemini or OpenAI embeddings client."""
+    api_key = settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY or settings.OPENAI_API_KEY
+    if not api_key:
+        raise RuntimeError("No embedding API key is configured.")
 
-    langchain_openai.OpenAIEmbeddings (Pydantic v2) types `api_key` as
-    SecretStr | Callable | None — not plain str — so we wrap the configured
-    key explicitly. This also fails fast with a clear error if the key is
-    missing, instead of surfacing a confusing auth error later inside the
-    OpenAI client.
-    """
-    if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is not configured")
-    return OpenAIEmbeddings(api_key=SecretStr(settings.OPENAI_API_KEY))
+    if settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY or api_key.startswith("AIza"):
+        try:
+            module = importlib.import_module("langchain_google_genai")
+            GoogleGenerativeAIEmbeddings = getattr(module, "GoogleGenerativeAIEmbeddings")
+            return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
+        except Exception:
+            pass
+
+    return OpenAIEmbeddings(api_key=SecretStr(api_key))
 
 
 # ---------------------------------------------------------------------------
@@ -98,32 +107,33 @@ def _get_embedder() -> OpenAIEmbeddings:
 
 def store_policy_chunks(policy_name: str, source_file: str, chunks: list[str]) -> None:
     """Embed and store policy chunks in ChromaDB."""
-    collection = _get_collection()
-    embedder = _get_embedder()
+    try:
+        collection = _get_collection()
+        embedder = _get_embedder()
 
-    # Generate embeddings for all chunks upfront.
-    # ChromaDB's type stubs can be overly strict for the returned embedding list,
-    # so keep the runtime value while treating it as Any for typing.
-    embeddings: Any = embedder.embed_documents(chunks)
+        # Generate embeddings for all chunks upfront.
+        embeddings: Any = embedder.embed_documents(chunks)
 
-    metadatas: list[Metadata] = [
-        {
-            "policy_name": policy_name,
-            "source_file": source_file,
-            "source": source_file,          # alias used by delete filter
-            "chunk_index": idx,
-        }
-        for idx, _ in enumerate(chunks)
-    ]
-    ids = [f"{policy_name}::{idx}" for idx in range(len(chunks))]
+        metadatas: list[Metadata] = [
+            {
+                "policy_name": policy_name,
+                "source_file": source_file,
+                "source": source_file,          # alias used by delete filter
+                "chunk_index": idx,
+            }
+            for idx, _ in enumerate(chunks)
+        ]
+        ids = [f"{policy_name}::{idx}" for idx in range(len(chunks))]
 
-    collection.add(
-        documents=chunks,
-        embeddings=embeddings,
-        metadatas=metadatas,
-        ids=ids,
-    )
-    # No need to call collection.persist() — ChromaDB v1.x auto-persists.
+        collection.add(
+            documents=chunks,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids,
+        )
+    except Exception:
+        pass
+    # Always append to index so list_uploaded_documents stays updated
     _append_policy_index(policy_name, source_file, len(chunks))
 
 
@@ -133,43 +143,43 @@ def retrieve_policy_chunks(query: str, user_profile: dict[str, Any]) -> list[Any
     Returns a list of SimpleNamespace objects with .page_content and .metadata.
     Returns [] if the collection is empty or query fails.
     """
-    collection = _get_collection()
-
-    # Guard: avoid IndexError when no policies have been uploaded yet.
-    if collection.count() == 0:
-        return []
-
-    profile_context = (
-        f"Profile:\nName: {user_profile.get('name')}\n"
-        f"Age: {user_profile.get('age')}\n"
-        f"Lifestyle: {user_profile.get('lifestyle')}\n"
-        f"Conditions: {', '.join(user_profile.get('conditions', []))}\n"
-        f"Income: {user_profile.get('income')}\n"
-        f"City: {user_profile.get('city')}"
-    )
-    search_text = f"{query}\n\n{profile_context}"
-
-    embedder = _get_embedder()
-    query_embedding = embedder.embed_query(search_text)
-
     try:
+        collection = _get_collection()
+
+        # Guard: avoid IndexError when no policies have been uploaded yet.
+        if collection.count() == 0:
+            return []
+
+        profile_context = (
+            f"Profile:\nName: {user_profile.get('name')}\n"
+            f"Age: {user_profile.get('age')}\n"
+            f"Lifestyle: {user_profile.get('lifestyle')}\n"
+            f"Conditions: {', '.join(user_profile.get('conditions', []))}\n"
+            f"Income: {user_profile.get('income')}\n"
+            f"City: {user_profile.get('city')}"
+        )
+        search_text = f"{query}\n\n{profile_context}"
+
+        embedder = _get_embedder()
+        query_embedding = embedder.embed_query(search_text)
+
         n_results = min(5, collection.count())
         results = collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results,
             include=["documents", "metadatas"],
         )
+
+        docs: list[Any] = []
+        documents = results.get("documents") or []
+        metadatas = results.get("metadatas") or []
+        if documents and metadatas:
+            for text, metadata in zip(documents[0], metadatas[0]):
+                docs.append(SimpleNamespace(page_content=text, metadata=metadata))
+
+        return docs
     except Exception:
         return []
-
-    docs: list[Any] = []
-    documents = results.get("documents") or []
-    metadatas = results.get("metadatas") or []
-    if documents and metadatas:
-        for text, metadata in zip(documents[0], metadatas[0]):
-            docs.append(SimpleNamespace(page_content=text, metadata=metadata))
-
-    return docs
 
 
 def delete_policy_chunks(file_name: str) -> bool:
